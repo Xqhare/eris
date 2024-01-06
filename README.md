@@ -11,6 +11,16 @@ Eris is a simple and efficient system performance monitoring service designed to
 - **Alerting:** Implement alerting mechanisms to notify users of performance anomalies or thresholds exceeding predetermined limits.
 - **Data Logging:** Eris logs system performance data to a persistent storage location, enabling analysis and trend identification.
 
+## Eris: A Name Rooted in Chaos and Harmony
+
+In the realm of ancient Greek mythology, Eris, the goddess of strife and discord, stands as a paradoxical figure. While often associated with chaos and destruction, she also played a role in instigating competition and driving innovation. This duality of Eris's nature aligns perfectly with the purpose of Eris, the system performance monitoring service. Eris is designed to uncover the underlying causes of performance issues, the root of chaos within a system. 
+
+Just as Eris's golden apple ignited a conflict between goddesses, Eris's monitoring data can reveal hidden flaws or inefficiencies that, if left unchecked, could lead to system failures or performance bottlenecks.
+
+The name Eris, therefore, not only reflects the service's ability to detect and diagnose performance problems but also captures its potential to drive positive change within a system. Just as Eris's intervention in the Trojan War led to the construction of the iconic Trojan Horse, Eris's insights can guide system administrators to optimize their systems and achieve remarkable performance improvements.
+
+In essence, Eris is not merely a tool for detecting and resolving performance issues; it is a catalyst for innovation and efficiency. By embracing the duality of Eris, we can harness the power of chaos to achieve harmony and unlock the full potential of our systems.
+
 ## Acknowledgments
 Thanks to the open-source community for providing invaluable tools and libraries.
 Used in this project:
