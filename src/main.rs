@@ -52,7 +52,9 @@ fn main() {
                     let hog_pid = hog.0.0;
                     let hog_proc = hog.0.1;
                     let hog_name = hog_proc.name();
-                    let cpu_usage_perc = hog_proc.cpu_usage();
+                    // Divide by cpu_cores to get percentage per single core. numbers will be
+                    // larger than 100% otherwise.
+                    let cpu_usage_perc = hog_proc.cpu_usage() / cpu_cores;
                     let parent_pid = hog.1;
                     let parent_name = sys2.process(parent_pid).unwrap().name();
                     println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
@@ -61,7 +63,6 @@ fn main() {
             cpu_core_counter += 1;
         }
         cpu_core_counter = 1;
-
         println!("loop {}", loop_counter);
         loop_counter += 1;
         thread::sleep(UPDATE_INTERVAL);
