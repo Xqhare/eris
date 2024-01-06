@@ -4,6 +4,9 @@ use sysinfo::{
     System, Pid, Process,
 };
 
+mod proc;
+mod jisard;
+
 const CPU_HIGH_THRESHOLD: f32 = 75.0;
 const MAIN_PROCESS_NAME: &str = "systemd";
 const ALT_PROC_NAME: &str = "gnome-shell";
