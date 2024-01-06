@@ -1,7 +1,7 @@
 use std::thread;
 
 use sysinfo::{
-    Components, Disks, Networks, System,
+    Components, Disks, Networks, System, Pid,
 };
 
 const CPU_HIGH_THRESHOLD: f32 = 75.0;
@@ -9,14 +9,42 @@ const CPU_HIGH_THRESHOLD: f32 = 75.0;
 fn main() {
     let mut sys = System::new_all();
     let mut loop_counter: usize  = 0;
+    let real_cpu_cores: Option<usize> = sys.physical_core_count();
+    // I really like this syntax
+    let cpu_cores: f32 = {
+        if real_cpu_cores.is_some() {
+            // I just assume standard hyperthreading. Nothing fancy, but also no single threads!
+            let parsing = real_cpu_cores.unwrap() as f32;
+            parsing * 2.0
+        } else {
+            // Hyperthreading for a single core default too, however this is the fallback, so use 1
+            // for data consistency for the user.
+            1.0
+        }
+    };
+    println!("CPU CORES {cpu_cores}");
+    sys.refresh_all();
     loop {
         sys.refresh_cpu();
+        sys.refresh_processes();
         // This is enough for 255 cores... Also cpu cores start at 1!
         let mut cpu_core_counter: u8 = 1;
         for cpu in sys.cpus() {
             println!("{} core | {}% usage", cpu_core_counter, cpu.cpu_usage());
             if cpu.cpu_usage() > CPU_HIGH_THRESHOLD {
                 println!("HIGH CPU USAGE DETECTED! CPU {}", cpu_core_counter);
+                let mut highest_cpu_usage: Pid = Pid::from_u32(u32::default());
+                let mut highest_cpu_usage_perc: f32 = f32::default();
+                let mut name = "";
+                for (pid, process) in sys.processes() {
+                    if process.cpu_usage() > highest_cpu_usage_perc {
+                        highest_cpu_usage_perc = process.cpu_usage() / cpu_cores;
+                        highest_cpu_usage = pid.to_owned();
+                        name = process.name();
+                        
+                    }
+                }
+                println!("[{highest_cpu_usage}] ({name}) {highest_cpu_usage_perc}");
             }
             cpu_core_counter += 1;
         }
