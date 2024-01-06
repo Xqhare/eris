@@ -1,8 +1,11 @@
 use std::{thread, time::Duration, collections::HashMap, hash::RandomState};
 
+use chrono::{Utc, SecondsFormat};
 use sysinfo::{
     System, Pid, Process,
 };
+
+use crate::proc::Proc;
 
 mod proc;
 mod jisard;
@@ -13,6 +16,8 @@ const ALT_PROC_NAME: &str = "gnome-shell";
 const PROCESS_LOGGING_AMOUNT: usize = 15;
 // This needs to be longer than the min cpu update interval of 200ms.
 const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
+const FILENAME: &str = "eris.json";
+
 
 fn main() {
     let mut sys = System::new_all();
@@ -49,19 +54,23 @@ fn main() {
                 // Determining of parent process:
                 let cpu_hogs_parents = cpu_hogs_parents(cpu_hogs(sys.processes()));
                 // WIP: CAN PANIC!!
+                let mut new_proc_data: Vec<Proc> = Default::default();
+                // Gets the current date with milliseconds and timezone.
+                let date = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, false);
                 for hog in cpu_hogs_parents {
-                    let mut sys2 = System::new();
-                    sys2.refresh_processes();
                     let hog_pid = hog.0.0;
                     let hog_proc = hog.0.1;
-                    let hog_name = hog_proc.name();
+                    let hog_name = hog_proc.name().to_string();
                     // Divide by cpu_cores to get percentage per single core. numbers will be
                     // larger than 100% otherwise.
                     let cpu_usage_perc = hog_proc.cpu_usage() / cpu_cores;
                     let parent_pid = hog.1;
-                    let parent_name = sys2.process(parent_pid).unwrap().name();
+                    let parent_name = sys.process(parent_pid).unwrap().name().to_string();
                     println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
+                    let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone()};
+                    new_proc_data.push(new_proc);
                 }
+                jisard::write_state(new_proc_data, FILENAME);
             }
             cpu_core_counter += 1;
         }
