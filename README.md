@@ -15,4 +15,5 @@ Eris is a simple and efficient system performance monitoring service designed to
 Thanks to the open-source community for providing invaluable tools and libraries.
 Used in this project:
 - [sysinfo](https://crates.io/crates/sysinfo)
-- [neith](https://github.com/Xqhare/neith)
+- [chrono](https://crates.io/crates/chrono)
+- [json](https://crates.io/crates/json)
