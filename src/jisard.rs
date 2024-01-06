@@ -28,10 +28,8 @@ fn write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P
     let mut json_obj_out = JsonValue::new_object();
     // WIP: THIS CAN ERROR!
     for value in json_file.entries() {
-        let temp = json_obj_out.insert(value.0, value.1.clone());
-        println!("TMEP DOG {:?}", temp);
+        let _ = json_obj_out.insert(value.0, value.1.clone());
     }
-    println!("START DOG {:?}", json_obj_out);
     for entry in new_data {
         let name = entry.name;
         let pid = entry.pid.as_u32();
@@ -48,12 +46,8 @@ fn write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P
             date: date.clone()
         };
         // WIP: THIS CAN ERROR!
-
-        println!("INNET DOG {:?}", new_json_data);
-        let test = json_obj_out.insert(format!("process {} at {}", pid, date).as_str(), new_json_data);
-        println!("INNET DOG {:?}", test);
+        let _ = json_obj_out.insert(format!("process {} at {}", pid, date).as_str(), new_json_data);
     }
-    println!("DOG {:?}", json_obj_out);
     let file = File::create(filename);
     // WIP: THIS PANICS
     let _ = json_obj_out.write(&mut file.expect("UNABLE TO CREATE FILE!"));

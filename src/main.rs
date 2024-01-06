@@ -35,7 +35,7 @@ fn main() {
             1.0
         }
     };
-    println!("CPU CORES {cpu_cores}");
+    // println!("CPU CORES {cpu_cores}");
     sys.refresh_all();
     // This waits for 200ms! This is on top of any processing time eris itself needs.
     thread::sleep(UPDATE_INTERVAL);
@@ -50,7 +50,7 @@ fn main() {
         for cpu in sys.cpus() {
             // println!("{} core | {}% usage", cpu_core_counter, cpu.cpu_usage());
             if cpu.cpu_usage() > CPU_HIGH_THRESHOLD {
-                println!("HIGH CPU USAGE DETECTED! CPU {}", cpu_core_counter);
+                // println!("HIGH CPU USAGE DETECTED! CPU {}", cpu_core_counter);
                 // Determining of parent process:
                 let cpu_hogs_parents = cpu_hogs_parents(cpu_hogs(sys.processes()));
                 // WIP: CAN PANIC!!
@@ -66,7 +66,7 @@ fn main() {
                     let cpu_usage_perc = hog_proc.cpu_usage() / cpu_cores;
                     let parent_pid = hog.1;
                     let parent_name = sys.process(parent_pid).unwrap().name().to_string();
-                    println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
+                    // println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
                     let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone()};
                     new_proc_data.push(new_proc);
                 }
@@ -75,7 +75,7 @@ fn main() {
             cpu_core_counter += 1;
         }
         cpu_core_counter = 1;
-        println!("loop {}", loop_counter);
+        // println!("loop {}", loop_counter);
         loop_counter += 1;
         thread::sleep(UPDATE_INTERVAL);
     }
