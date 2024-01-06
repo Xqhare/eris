@@ -10,3 +10,4 @@ authors = ["Xqhare"]
 [dependencies]
 sysinfo = "0.30.5"
 neith = { path = "../neith" }
+json = "0.12.4"
