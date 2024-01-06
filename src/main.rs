@@ -1,10 +1,15 @@
-use std::thread;
+use std::{thread, time::Duration, collections::HashMap, hash::RandomState};
 
 use sysinfo::{
-    Components, Disks, Networks, System, Pid,
+    System, Pid, Process,
 };
 
 const CPU_HIGH_THRESHOLD: f32 = 75.0;
+const MAIN_PROCESS_NAME: &str = "systemd";
+const ALT_PROC_NAME: &str = "gnome-shell";
+const PROCESS_LOGGING_AMOUNT: usize = 15;
+// This needs to be longer than the min cpu update interval of 200ms.
+const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 
 fn main() {
     let mut sys = System::new_all();
@@ -24,94 +29,110 @@ fn main() {
     };
     println!("CPU CORES {cpu_cores}");
     sys.refresh_all();
+    // This waits for 200ms! This is on top of any processing time eris itself needs.
+    thread::sleep(UPDATE_INTERVAL);
+    // This is the main loop. As this is supposed to be put in autorun an be on forever, it loops
+    // forever.
     loop {
         sys.refresh_cpu();
         sys.refresh_processes();
+        sys.refresh_cpu_usage();
         // This is enough for 255 cores... Also cpu cores start at 1!
         let mut cpu_core_counter: u8 = 1;
         for cpu in sys.cpus() {
-            println!("{} core | {}% usage", cpu_core_counter, cpu.cpu_usage());
+            // println!("{} core | {}% usage", cpu_core_counter, cpu.cpu_usage());
             if cpu.cpu_usage() > CPU_HIGH_THRESHOLD {
                 println!("HIGH CPU USAGE DETECTED! CPU {}", cpu_core_counter);
-                let mut highest_cpu_usage: Pid = Pid::from_u32(u32::default());
-                let mut highest_cpu_usage_perc: f32 = f32::default();
-                let mut name = "";
-                for (pid, process) in sys.processes() {
-                    if process.cpu_usage() > highest_cpu_usage_perc {
-                        highest_cpu_usage_perc = process.cpu_usage() / cpu_cores;
-                        highest_cpu_usage = pid.to_owned();
-                        name = process.name();
-                        
-                    }
+                // Determining of parent process:
+                let cpu_hogs_parents = cpu_hogs_parents(cpu_hogs(sys.processes()));
+                // WIP: CAN PANIC!!
+                for hog in cpu_hogs_parents {
+                    let mut sys2 = System::new();
+                    sys2.refresh_processes();
+                    let hog_pid = hog.0.0;
+                    let hog_proc = hog.0.1;
+                    let hog_name = hog_proc.name();
+                    let cpu_usage_perc = hog_proc.cpu_usage();
+                    let parent_pid = hog.1;
+                    let parent_name = sys2.process(parent_pid).unwrap().name();
+                    println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
                 }
-                println!("[{highest_cpu_usage}] ({name}) {highest_cpu_usage_perc}");
             }
             cpu_core_counter += 1;
         }
         cpu_core_counter = 1;
 
         println!("loop {}", loop_counter);
-        
         loop_counter += 1;
-        // This waits for 200ms!
-        thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+        thread::sleep(UPDATE_INTERVAL);
     }
 }
-
-fn sysinfo_test () {
-    // Please note that we use "new_all" to ensure that all list of
-    // components, network interfaces, disks and users are already
-    // filled!
-    let mut sys = System::new_all();
-
-    // First we update all information of our `System` struct.
-    sys.refresh_all();
-    // For accurate CPU info update twice for reference point.
-    sys.refresh_all();
-    println!("TEST");
-    println!("One min: {:?}", System::load_average().one);
-    println!("five min: {:?}", System::load_average().five);
-    println!("fifteen min: {:?}", System::load_average().fifteen);
-    
-    println!("=> system:");
-    // RAM and swap information:
-    println!("total memory: {} bytes", sys.total_memory());
-    println!("used memory : {} bytes", sys.used_memory());
-    println!("total swap  : {} bytes", sys.total_swap());
-    println!("used swap   : {} bytes", sys.used_swap());
-
-    // Display system information:
-    println!("System name:             {:?}", System::name());
-    println!("System kernel version:   {:?}", System::kernel_version());
-    println!("System OS version:       {:?}", System::os_version());
-    println!("System host name:        {:?}", System::host_name());
-
-    // Number of CPUs:
-    println!("NB CPUs: {}", sys.cpus().len());
-
-    // Display processes ID, name na disk usage:
-    for (pid, process) in sys.processes() {
-        println!("[{pid}] {} {:?} | cpu%: {} | parent id {:?}", process.name(), process.disk_usage(), process.cpu_usage(), process.parent(),);
+// This determines the actual process, not what parent it belongs to.
+fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Process)> {
+    let mut out: Vec<(Pid, &Process)> = Vec::new();
+    for (pid, process) in processes {
+        if out.len() < PROCESS_LOGGING_AMOUNT {
+            if out.len() == 0 {
+                out.push((pid.to_owned(), process));
+            } else {
+                let mut index: usize = 0;
+                let mut insert = false;
+                for entry in &out {
+                    if entry.1.cpu_usage() < process.cpu_usage() {
+                        insert = true;
+                        break;
+                    }
+                    index += 1;
+                }
+                if insert {
+                    out.insert(index, (pid.to_owned(), process));
+                } else {
+                    out.push((pid.to_owned(), process));
+                }
+            }
+        } else {
+            let mut index: usize = 0;
+            let mut insert = false;
+            for entry in &out {
+                if entry.1.cpu_usage() < process.cpu_usage() {
+                    insert = true;
+                    break;
+                }
+                index += 1;
+            }
+            if insert {
+                out.remove(index);
+                out.insert(index, (pid.to_owned(), process))
+            }
+        }
     }
-
-    // We display all disks' information:
-    println!("=> disks:");
-    let disks = Disks::new_with_refreshed_list();
-    for disk in &disks {
-        println!("{disk:?}");
+    return out;
+}
+/// Returns the cpu hog first, the parent second.
+fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid)> {
+    let mut out: Vec<((Pid, &Process), Pid)> = Vec::new();
+    let mut sys = System::new();
+    sys.refresh_processes();
+    for hog in cpu_hogs {
+        let mut parent: (Pid, &Process) = hog;
+        loop {
+            let poss_parent = parent.1.parent();
+            if poss_parent.is_some() {
+                let poss_parent_proc = sys.process(poss_parent.unwrap());
+                if poss_parent_proc.is_some() {
+                    if poss_parent_proc.unwrap().name() == MAIN_PROCESS_NAME || poss_parent_proc.unwrap().name() == ALT_PROC_NAME {
+                        break;
+                    } else {
+                        parent = (poss_parent.unwrap(), poss_parent_proc.unwrap());
+                    }
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        out.push((hog, parent.0));
     }
-
-    // Network interfaces name, data received and data transmitted:
-    let networks = Networks::new_with_refreshed_list();
-    println!("=> networks:");
-    for (interface_name, data) in &networks {
-        println!("{interface_name}: {}/{} B", data.received(), data.transmitted());
-    }
-
-    // Components temperature:
-    let components = Components::new_with_refreshed_list();
-    println!("=> components:");
-    for component in &components {
-        println!("{component:?}");
-    }
+    return out;
 }
