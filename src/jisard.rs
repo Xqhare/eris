@@ -15,18 +15,25 @@ pub fn write_state<P>(new_data: Vec<Proc>, filename: P) where P: AsRef<Path> + C
     }
 }
 
+/// This cannot panic, it will return an empty `JsonValue` instead.
 fn read_json<P>(filename: P) -> JsonValue where P: AsRef<Path> {
-    // WIP: THIS PANICS IF PATH NOT EXISTANT!
-    let mut input = File::open(filename).expect("UNABLE TO OPEN FILE!");
-    let mut buffer: String = Default::default();
-    let _ = input.read_to_string(&mut buffer);
-    // WIP: THIS PANICS IF SUPPLIED WITH INVALID JSON!!
-    let out = parse(&buffer).expect("Invalid json!");
-    return out;
+    let input = File::open(filename);
+    if input.is_ok() {
+        let mut buffer: String = Default::default();
+        let _ = input.unwrap().read_to_string(&mut buffer);
+        let out = parse(&buffer);
+        if out.is_ok() {
+            return out.unwrap();
+        } else {
+            return JsonValue::new_object();
+        }
+    } else {
+        return JsonValue::new_object();
+    }
 }
+/// This function cannot panic, it will just not write anything if it does.
 fn write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P: AsRef<Path> {
     let mut json_obj_out = JsonValue::new_object();
-    // WIP: THIS CAN ERROR!
     for value in json_file.entries() {
         let _ = json_obj_out.insert(value.0, value.1.clone());
     }
@@ -45,10 +52,10 @@ fn write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P
             cpu_usage_percent: cpu_usage_per,
             date: date.clone()
         };
-        // WIP: THIS CAN ERROR!
         let _ = json_obj_out.insert(format!("process {} at {}", pid, date).as_str(), new_json_data);
     }
     let file = File::create(filename);
-    // WIP: THIS PANICS
-    let _ = json_obj_out.write(&mut file.expect("UNABLE TO CREATE FILE!"));
+    if file.is_ok() {
+        let _ = json_obj_out.write(&mut file.expect("UNABLE TO CREATE FILE!"));
+    }
 }

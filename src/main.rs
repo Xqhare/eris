@@ -53,7 +53,6 @@ fn main() {
                 // println!("HIGH CPU USAGE DETECTED! CPU {}", cpu_core_counter);
                 // Determining of parent process:
                 let cpu_hogs_parents = cpu_hogs_parents(cpu_hogs(sys.processes()));
-                // WIP: CAN PANIC!!
                 let mut new_proc_data: Vec<Proc> = Default::default();
                 // Gets the current date with milliseconds and timezone.
                 let date = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, false);
@@ -65,7 +64,13 @@ fn main() {
                     // larger than 100% otherwise.
                     let cpu_usage_perc = hog_proc.cpu_usage() / cpu_cores;
                     let parent_pid = hog.1;
-                    let parent_name = sys.process(parent_pid).unwrap().name().to_string();
+                    let parent_proc = sys.process(parent_pid);
+                    let mut parent_name: String = Default::default();
+                    if parent_proc.is_some() {
+                        parent_name = parent_proc.unwrap().name().to_string();
+                    } else {
+                        parent_name = "ErisFoundNoParent".to_string();
+                    }
                     // println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
                     let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone()};
                     new_proc_data.push(new_proc);
