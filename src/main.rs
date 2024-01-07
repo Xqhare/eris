@@ -21,7 +21,7 @@ const FILENAME: &str = "eris.json";
 
 fn main() {
     let mut sys = System::new_all();
-    let mut loop_counter: usize  = 0;
+    // let mut loop_counter: usize  = 0;
     let real_cpu_cores: Option<usize> = sys.physical_core_count();
     // I really like this syntax
     let cpu_cores: f32 = {
@@ -46,7 +46,7 @@ fn main() {
         sys.refresh_processes();
         sys.refresh_cpu_usage();
         // This is enough for 255 cores... Also cpu cores start at 1!
-        let mut cpu_core_counter: u8 = 1;
+        // let mut cpu_core_counter: u8 = 1;
         for cpu in sys.cpus() {
             // println!("{} core | {}% usage", cpu_core_counter, cpu.cpu_usage());
             if cpu.cpu_usage() > CPU_HIGH_THRESHOLD {
@@ -71,17 +71,29 @@ fn main() {
                     } else {
                         parent_name = "ErisFoundNoParent".to_string();
                     }
+                    let vir_mem: u64 = hog_proc.virtual_memory();
+                    let disc_use = hog_proc.disk_usage();
+                    let total_disc_read: u64 = disc_use.total_read_bytes;
+                    let total_disc_write: u64 = disc_use.total_written_bytes;
+                    let run_time: u64 = hog_proc.run_time();
+                    let usr_id = {
+                        if hog_proc.user_id().is_some() {
+                            hog_proc.user_id().unwrap().to_string()
+                        } else {
+                            "ErisFoundNoUser".to_string()
+                        }
+                    };
                     // println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
-                    let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone()};
+                    let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone(), vir_mem, total_disc_read, total_disc_write, run_time, usr_id};
                     new_proc_data.push(new_proc);
                 }
                 jisard::write_state(new_proc_data, FILENAME);
             }
-            cpu_core_counter += 1;
+            // cpu_core_counter += 1;
         }
-        cpu_core_counter = 1;
+        // cpu_core_counter = 1;
         // println!("loop {}", loop_counter);
-        loop_counter += 1;
+        // loop_counter += 1;
         thread::sleep(UPDATE_INTERVAL);
     }
 }

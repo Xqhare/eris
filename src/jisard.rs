@@ -44,13 +44,23 @@ fn write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P
         let parent_pid = entry.parent_pid.as_u32();
         let cpu_usage_per = entry.cpu_usage_per;
         let date = entry.date;
+        let vir_mem = entry.vir_mem;
+        let total_disc_read = entry.total_disc_read;
+        let total_disc_write = entry.total_disc_write;
+        let run_time = entry.run_time;
+        let usr_id = entry.usr_id;
         let new_json_data = json::object!{
             name: name,
             pid: pid,
             parent_name: parent_name,
             parent_pid: parent_pid,
             cpu_usage_percent: cpu_usage_per,
-            date: date.clone()
+            date: date.clone(),
+            vir_mem: vir_mem,
+            total_disc_read: total_disc_read,
+            total_disc_write: total_disc_write,
+            run_time: run_time,
+            usr_id: usr_id
         };
         let _ = json_obj_out.insert(format!("process {} at {}", pid, date).as_str(), new_json_data);
     }
