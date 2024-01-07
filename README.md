@@ -11,6 +11,26 @@ Eris is a simple and efficient system performance monitoring service designed to
 - **Alerting:** Implement alerting mechanisms to notify users of performance anomalies or thresholds exceeding predetermined limits.
 - **Data Logging:** Eris logs system performance data to a persistent storage location, enabling analysis and trend identification.
 
+### What is saved to disc?
+
+Currently these parameters are saved for every process:
+
+```
+pub struct Proc {
+    pub name: String,
+    pub pid: Pid,
+    pub parent_name: String,
+    pub parent_pid: Pid,
+    pub cpu_usage_per: f32,
+    pub date: String,
+    pub vir_mem: u64,
+    pub total_disc_read: u64,
+    pub total_disc_write: u64,
+    pub run_time: u64,
+    pub usr_id: String,
+}
+```
+
 ## Eris: A Name Rooted in Chaos and Harmony
 
 In the realm of ancient Greek mythology, Eris, the goddess of strife and discord, stands as a paradoxical figure. While often associated with chaos and destruction, she also played a role in instigating competition and driving innovation. This duality of Eris's nature aligns perfectly with the purpose of Eris, the system performance monitoring service. Eris is designed to uncover the underlying causes of performance issues, the root of chaos within a system. 
