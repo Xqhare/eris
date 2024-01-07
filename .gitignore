@@ -19,6 +19,8 @@ target/
 /target
 
 # Added by me
+ eris
+ eris.json
 
 # vimsession contains personal info!
 *.vim
