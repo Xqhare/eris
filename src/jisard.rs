@@ -66,6 +66,6 @@ fn write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P
     }
     let file = File::create(filename);
     if file.is_ok() {
-        let _ = json_obj_out.write(&mut file.expect("UNABLE TO CREATE FILE!"));
+        let _ = json_obj_out.write_pretty(&mut file.expect("UNABLE TO CREATE FILE!"), 2);
     }
 }
