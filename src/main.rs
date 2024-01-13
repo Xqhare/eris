@@ -1,6 +1,7 @@
-use std::{thread, time::Duration, collections::HashMap, hash::RandomState};
+use std::{thread, time::Duration, collections::HashMap, hash::RandomState, sync::{Arc, atomic::{AtomicBool, Ordering}}};
 
 use chrono::{Utc, SecondsFormat};
+use signal_hook::{consts::TERM_SIGNALS, flag};
 use sysinfo::{
     System, Pid, Process,
 };
@@ -20,13 +21,13 @@ const FILENAME: &str = "eris.json";
 
 
 fn main() {
+    // Eris init
     let mut sys = System::new_all();
-    // let mut loop_counter: usize  = 0;
     let real_cpu_cores: Option<usize> = sys.physical_core_count();
-    // I really like this syntax
     let cpu_cores: f32 = {
         if real_cpu_cores.is_some() {
             // I just assume standard hyperthreading. Nothing fancy, but also no single threads!
+            // I really like this syntax
             let parsing = real_cpu_cores.unwrap() as f32;
             parsing * 2.0
         } else {
@@ -35,22 +36,26 @@ fn main() {
             1.0
         }
     };
-    // println!("CPU CORES {cpu_cores}");
     sys.refresh_all();
     // This waits for 200ms! This is on top of any processing time eris itself needs.
     thread::sleep(UPDATE_INTERVAL);
-    // This is the main loop. As this is supposed to be put in autorun an be on forever, it loops
-    // forever.
-    loop {
+    // System interrupts
+    // A thread share save boolean. It's passed to `flag::register` setting it to true for the first kill command recieved.
+    let term_now = Arc::new(AtomicBool::new(false));
+    for sig in TERM_SIGNALS {
+        // If second termination signal is recieved, I'll just kill myself
+        flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now)).expect("Critical Error during system integration. Shut down to prevent data corruption. E11");
+        // This will arm the above for a second time. Order is improtant!
+        flag::register(*sig, Arc::clone(&term_now)).expect("Critical Error during system integration. Shut down to prevent data corruption. E12");
+    }
+    // This is the main loop. As this is supposed to be put in autorun an be on forever, it loops as long as `term_now` is set to false.
+    while !term_now.load(Ordering::Relaxed) {
         sys.refresh_cpu();
         sys.refresh_processes();
         sys.refresh_cpu_usage();
         // This is enough for 255 cores... Also cpu cores start at 1!
-        // let mut cpu_core_counter: u8 = 1;
         for cpu in sys.cpus() {
-            // println!("{} core | {}% usage", cpu_core_counter, cpu.cpu_usage());
             if cpu.cpu_usage() > CPU_HIGH_THRESHOLD {
-                // println!("HIGH CPU USAGE DETECTED! CPU {}", cpu_core_counter);
                 // Determining of parent process:
                 let cpu_hogs_parents = cpu_hogs_parents(cpu_hogs(sys.processes()));
                 let mut new_proc_data: Vec<Proc> = Default::default();
@@ -83,19 +88,20 @@ fn main() {
                             "ErisFoundNoUser".to_string()
                         }
                     };
-                    // println!("[{hog_pid}] ({hog_name}) PARENT {parent_name} | {cpu_usage_perc}");
                     let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone(), vir_mem, total_disc_read, total_disc_write, run_time, usr_id};
                     new_proc_data.push(new_proc);
                 }
                 jisard::write_state(new_proc_data, FILENAME);
             }
-            // cpu_core_counter += 1;
         }
-        // cpu_core_counter = 1;
-        // println!("loop {}", loop_counter);
-        // loop_counter += 1;
         thread::sleep(UPDATE_INTERVAL);
     }
+    // This code is only executed AFTER a kill signal was recieved.
+    // But as long as eris is shut down gracefully, and the final json is saved succesfully, there
+    // really is nothing left to do.
+    //
+    // Exept mark it by dropping some important values:
+    let _ = sys;
 }
 // This determines the actual process, not what parent it belongs to.
 fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Process)> {
