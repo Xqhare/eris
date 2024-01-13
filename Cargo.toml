@@ -1,6 +1,6 @@
 [package]
 name = "eris"
-version = "0.2.4"
+version = "0.2.5"
 edition = "2021"
 authors = ["Xqhare"]
 
@@ -11,3 +11,4 @@ authors = ["Xqhare"]
 sysinfo = "0.30.5"
 json = "0.12.4"
 chrono = "0.4.31"
+signal-hook = "0.3.17"
