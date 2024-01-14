@@ -47,3 +47,4 @@ Used in this project:
 - [sysinfo](https://crates.io/crates/sysinfo)
 - [chrono](https://crates.io/crates/chrono)
 - [json](https://crates.io/crates/json)
+- [signal-hook](https://crates.io/crates/signal-hook)
