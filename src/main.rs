@@ -1,4 +1,4 @@
-use std::{thread, time::Duration, collections::HashMap, hash::RandomState, sync::{Arc, atomic::{AtomicBool, Ordering}}};
+use std::{thread, time::Duration, collections::HashMap, hash::RandomState, sync::{Arc, atomic::{AtomicBool, Ordering}}, io::Error};
 
 use chrono::{Utc, SecondsFormat};
 use signal_hook::{consts::TERM_SIGNALS, flag};
@@ -20,7 +20,7 @@ const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 const FILENAME: &str = "eris.json";
 
 
-fn main() {
+fn main() -> Result<(), Error> {
     // Eris init
     let mut sys = System::new_all();
     let real_cpu_cores: Option<usize> = sys.physical_core_count();
@@ -44,9 +44,9 @@ fn main() {
     let term_now = Arc::new(AtomicBool::new(false));
     for sig in TERM_SIGNALS {
         // If second termination signal is recieved, I'll just kill myself
-        flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now)).expect("Critical Error during system integration. Shut down to prevent data corruption. E11");
+        flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
         // This will arm the above for a second time. Order is improtant!
-        flag::register(*sig, Arc::clone(&term_now)).expect("Critical Error during system integration. Shut down to prevent data corruption. E12");
+        flag::register(*sig, Arc::clone(&term_now))?;
     }
     // This is the main loop. As this is supposed to be put in autorun an be on forever, it loops as long as `term_now` is set to false.
     while !term_now.load(Ordering::Relaxed) {
@@ -102,6 +102,7 @@ fn main() {
     //
     // Exept mark it by dropping some important values:
     let _ = sys;
+    Ok(())
 }
 // This determines the actual process, not what parent it belongs to.
 fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Process)> {
