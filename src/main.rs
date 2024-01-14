@@ -37,8 +37,13 @@ fn main() -> Result<(), Error> {
         }
     };
     sys.refresh_all();
-    // This waits for 200ms! This is on top of any processing time eris itself needs.
-    thread::sleep(UPDATE_INTERVAL);
+    // I believe with the rework of loop into while, the start of main will be executed again,
+    // as it has to run the for loop to determine
+    let mut fist_start = true;
+    if fist_start {
+            thread::sleep(UPDATE_INTERVAL);
+            fist_start = false;
+        }
     // System interrupts
     // A thread share save boolean. It's passed to `flag::register` setting it to true for the first kill command recieved.
     let term_now = Arc::new(AtomicBool::new(false));
@@ -48,6 +53,7 @@ fn main() -> Result<(), Error> {
         // This will arm the above for a second time. Order is improtant!
         flag::register(*sig, Arc::clone(&term_now))?;
     }
+        
     // This is the main loop. As this is supposed to be put in autorun an be on forever, it loops as long as `term_now` is set to false.
     while !term_now.load(Ordering::Relaxed) {
         sys.refresh_cpu();
@@ -102,6 +108,11 @@ fn main() -> Result<(), Error> {
     // This code is only executed AFTER a kill signal was recieved.
     // But as long as eris is shut down gracefully, and the final json is saved succesfully, there
     // really is nothing left to do.
+    
+    // Testing of giving a return signal to kernel
+    for sig in TERM_SIGNALS {
+        flag::register_conditional_shutdown(*sig, 1, Arc::new(AtomicBool::new(true)))?;
+    }
     Ok(())
 }
 
