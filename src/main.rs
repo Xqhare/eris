@@ -104,6 +104,7 @@ fn main() -> Result<(), Error> {
     let _ = sys;
     Ok(())
 }
+
 // This determines the actual process, not what parent it belongs to.
 fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Process)> {
     let mut out: Vec<(Pid, &Process)> = Vec::new();
@@ -145,6 +146,7 @@ fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Proces
     }
     return out;
 }
+
 /// Returns the cpu hog first, the parent second.
 fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid)> {
     let mut out: Vec<((Pid, &Process), Pid)> = Vec::new();
@@ -173,3 +175,4 @@ fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid
     }
     return out;
 }
+
