@@ -94,14 +94,14 @@ fn main() -> Result<(), Error> {
                 jisard::write_state(new_proc_data, FILENAME);
             }
         }
-        thread::sleep(UPDATE_INTERVAL);
+        // Remove the wait for system SIGTERM, no need to delay.
+        if !term_now.load(Ordering::Relaxed) {
+            thread::sleep(UPDATE_INTERVAL);
+        }
     }
     // This code is only executed AFTER a kill signal was recieved.
     // But as long as eris is shut down gracefully, and the final json is saved succesfully, there
     // really is nothing left to do.
-    //
-    // Exept mark it by dropping some important values:
-    let _ = sys;
     Ok(())
 }
 
