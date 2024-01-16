@@ -1,6 +1,7 @@
-use std::{thread, time::Duration, collections::HashMap, hash::RandomState, sync::{Arc, atomic::{AtomicBool, Ordering}}, io::Error};
+use std::{thread, time::Duration, collections::HashMap, hash::RandomState, sync::{Arc, atomic::{AtomicBool, Ordering}}, io::Error, fs::File};
 
 use chrono::{Utc, SecondsFormat};
+use jisard::move_to_storage_file;
 use signal_hook::{consts::TERM_SIGNALS, flag};
 use sysinfo::{
     System, Pid, Process,
@@ -18,6 +19,9 @@ const PROCESS_LOGGING_AMOUNT: usize = 15;
 // This needs to be longer than the min cpu update interval of 200ms.
 const UPDATE_INTERVAL: Duration = Duration::from_millis(500);
 const FILENAME: &str = "eris.json";
+const LONGTERM_STORAGE_NAME: &str = "eris_archive.json";
+// 8 million bytes!
+const MAX_ERIS_FILE_SIZE: u64 = 8000000;
 
 
 fn main() -> Result<(), Error> {
@@ -39,10 +43,10 @@ fn main() -> Result<(), Error> {
     sys.refresh_all();
     // I believe with the rework of loop into while, the start of main will be executed again,
     // as it has to run the for loop to determine
-    let mut fist_start = true;
-    if fist_start {
+    // `first_start` is set to false in archival-check below!
+    let mut first_start = true;
+    if first_start {
             thread::sleep(UPDATE_INTERVAL);
-            fist_start = false;
         }
     // System interrupts
     // A thread share save boolean. It's passed to `flag::register` setting it to true for the first kill command recieved.
@@ -53,7 +57,18 @@ fn main() -> Result<(), Error> {
         // This will arm the above for a second time. Order is improtant!
         flag::register(*sig, Arc::clone(&term_now))?;
     }
-        
+    // Archival check - Is the work file larger than about 8mb? -> move contents to archive!
+    if first_start {
+        let file = File::open(FILENAME);
+        if file.is_ok() {
+            let file_size = file.unwrap().metadata().unwrap().len();
+            //
+            if file_size > MAX_ERIS_FILE_SIZE {
+                move_to_storage_file(FILENAME, LONGTERM_STORAGE_NAME);
+            }
+        }
+        first_start = false;
+    }
     // This is the main loop. As this is supposed to be put in autorun an be on forever, it loops as long as `term_now` is set to false.
     while !term_now.load(Ordering::Relaxed) {
         sys.refresh_cpu();
