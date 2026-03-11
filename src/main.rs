@@ -1,16 +1,25 @@
-use std::{thread, time::Duration, collections::HashMap, hash::RandomState, sync::{Arc, atomic::{AtomicBool, Ordering}}, io::Error, fs::File};
-
-use chrono::{Utc, SecondsFormat};
-use jisard::move_to_storage_file;
-use signal_hook::{consts::TERM_SIGNALS, flag};
-use sysinfo::{
-    System, Pid, Process,
+use std::{
+    collections::HashMap,
+    fs::File,
+    hash::RandomState,
+    io::Error,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    time::Duration,
 };
+
+use chrono::{SecondsFormat, Utc};
+use jisard::move_to_storage_file;
+use hades::{flag, term_signals::TERM_SIGNALS};
+use sysinfo::{Pid, Process, System};
 
 use crate::proc::Proc;
 
-mod proc;
 mod jisard;
+mod proc;
 
 const CPU_HIGH_THRESHOLD: f32 = 75.0;
 const MAIN_PROCESS_NAME: &str = "systemd";
@@ -22,7 +31,6 @@ const FILENAME: &str = "eris.json";
 const LONGTERM_STORAGE_NAME: &str = "eris_archive.json";
 // 8 million bytes!
 const MAX_ERIS_FILE_SIZE: u64 = 8000000;
-
 
 fn main() -> Result<(), Error> {
     // Eris init
@@ -46,16 +54,13 @@ fn main() -> Result<(), Error> {
     // `first_start` is set to false in archival-check below!
     let mut first_start = true;
     if first_start {
-            thread::sleep(UPDATE_INTERVAL);
-        }
+        thread::sleep(UPDATE_INTERVAL);
+    }
     // System interrupts
-    // A thread share save boolean. It's passed to `flag::register` setting it to true for the first kill command recieved.
+    // A thread share save boolean. It's passed to `flag::register` setting it to true for the first kill command received.
     let term_now = Arc::new(AtomicBool::new(false));
     for sig in TERM_SIGNALS {
-        // If second termination signal is recieved, I'll just kill myself
-        flag::register_conditional_shutdown(*sig, 1, Arc::clone(&term_now))?;
-        // This will arm the above for a second time. Order is improtant!
-        flag::register(*sig, Arc::clone(&term_now))?;
+        flag::register(*sig, Arc::clone(&term_now)).map_err(|e| Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     }
     // Archival check - Is the work file larger than about 8mb? -> move contents to archive!
     if first_start {
@@ -109,7 +114,19 @@ fn main() -> Result<(), Error> {
                             "ErisFoundNoUser".to_string()
                         }
                     };
-                    let new_proc = Proc {name: hog_name, pid: hog_pid, parent_name, parent_pid, cpu_usage_per: cpu_usage_perc, date: date.clone(), vir_mem, total_disc_read, total_disc_write, run_time, usr_id};
+                    let new_proc = Proc {
+                        name: hog_name,
+                        pid: hog_pid,
+                        parent_name,
+                        parent_pid,
+                        cpu_usage_per: cpu_usage_perc,
+                        date: date.clone(),
+                        vir_mem,
+                        total_disc_read,
+                        total_disc_write,
+                        run_time,
+                        usr_id,
+                    };
                     new_proc_data.push(new_proc);
                 }
                 jisard::write_state(new_proc_data, FILENAME);
@@ -123,10 +140,10 @@ fn main() -> Result<(), Error> {
     // This code is only executed AFTER a kill signal was recieved.
     // But as long as eris is shut down gracefully, and the final json is saved succesfully, there
     // really is nothing left to do.
-    
+
     // Testing of giving a return signal to kernel
     for sig in TERM_SIGNALS {
-        flag::register_conditional_shutdown(*sig, 1, Arc::new(AtomicBool::new(true)))?;
+        flag::register(*sig, Arc::new(AtomicBool::new(true))).map_err(|e| Error::new(std::io::ErrorKind::Other, e.to_string()))?;
     }
     Ok(())
 }
@@ -185,7 +202,9 @@ fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid
             if poss_parent.is_some() {
                 let poss_parent_proc = sys.process(poss_parent.unwrap());
                 if poss_parent_proc.is_some() {
-                    if poss_parent_proc.unwrap().name() == MAIN_PROCESS_NAME || poss_parent_proc.unwrap().name() == ALT_PROC_NAME {
+                    if poss_parent_proc.unwrap().name() == MAIN_PROCESS_NAME
+                        || poss_parent_proc.unwrap().name() == ALT_PROC_NAME
+                    {
                         break;
                     } else {
                         parent = (poss_parent.unwrap(), poss_parent_proc.unwrap());
@@ -201,4 +220,3 @@ fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid
     }
     return out;
 }
-
