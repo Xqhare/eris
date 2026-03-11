@@ -1,10 +1,18 @@
-use std::{path::{Path, PathBuf}, fs::File, io::Read};
+use std::{
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 use json::{JsonValue, parse};
 
 use crate::proc::Proc;
 
-pub fn move_to_storage_file<P>(filename_to_move: P, filename_to_move_to: P) where P: AsRef<Path> + Copy, PathBuf: From<P> {
+pub fn move_to_storage_file<P>(filename_to_move: P, filename_to_move_to: P)
+where
+    P: AsRef<Path> + Copy,
+    PathBuf: From<P>,
+{
     // Filename_to_move exists, to_move_to is not proven yet. This is handled by File::create,
     // however the data I write to the file changes!
     if PathBuf::from(filename_to_move_to).exists() {
@@ -31,7 +39,11 @@ pub fn move_to_storage_file<P>(filename_to_move: P, filename_to_move_to: P) wher
     }
 }
 
-pub fn write_state<P>(new_data: Vec<Proc>, filename: P) where P: AsRef<Path> + Copy, PathBuf: From<P> {
+pub fn write_state<P>(new_data: Vec<Proc>, filename: P)
+where
+    P: AsRef<Path> + Copy,
+    PathBuf: From<P>,
+{
     let file_path = PathBuf::from(filename);
     if file_path.exists() {
         let old_data = read_json(filename);
@@ -42,13 +54,19 @@ pub fn write_state<P>(new_data: Vec<Proc>, filename: P) where P: AsRef<Path> + C
     }
 }
 
-fn reset_work_file<P>(filename: P) where P: AsRef<Path> {
+fn reset_work_file<P>(filename: P)
+where
+    P: AsRef<Path>,
+{
     let empty_data = JsonValue::new_object();
     write_json(empty_data, filename);
 }
 
 /// This cannot panic, it will return an empty `JsonValue` instead.
-fn read_json<P>(filename: P) -> JsonValue where P: AsRef<Path> {
+fn read_json<P>(filename: P) -> JsonValue
+where
+    P: AsRef<Path>,
+{
     let input = File::open(filename);
     if input.is_ok() {
         let mut buffer: String = Default::default();
@@ -64,7 +82,10 @@ fn read_json<P>(filename: P) -> JsonValue where P: AsRef<Path> {
     }
 }
 /// This function cannot panic, it will just not write anything if it does.
-fn encode_write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) where P: AsRef<Path> {
+fn encode_write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P)
+where
+    P: AsRef<Path>,
+{
     let mut json_obj_out = JsonValue::new_object();
     for value in json_file.entries() {
         let _ = json_obj_out.insert(value.0, value.1.clone());
@@ -81,7 +102,7 @@ fn encode_write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) 
         let total_disc_write = entry.total_disc_write;
         let run_time = entry.run_time;
         let usr_id = entry.usr_id;
-        let new_json_data = json::object!{
+        let new_json_data = json::object! {
             name: name,
             pid: pid,
             parent_name: parent_name,
@@ -94,12 +115,18 @@ fn encode_write_json<P>(json_file: JsonValue, new_data: Vec<Proc>, filename: P) 
             run_time: run_time,
             usr_id: usr_id
         };
-        let _ = json_obj_out.insert(format!("process {} at {}", pid, date).as_str(), new_json_data);
+        let _ = json_obj_out.insert(
+            format!("process {} at {}", pid, date).as_str(),
+            new_json_data,
+        );
     }
     write_json(json_obj_out, filename);
 }
 
-fn write_json<P>(json_file: JsonValue, filename: P) where P: AsRef<Path> {
+fn write_json<P>(json_file: JsonValue, filename: P)
+where
+    P: AsRef<Path>,
+{
     let file = File::create(filename);
     if file.is_ok() {
         let _ = json_file.write_pretty(&mut file.expect("UNABLE TO CREATE FILE!"), 2);
