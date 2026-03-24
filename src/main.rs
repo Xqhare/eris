@@ -60,7 +60,7 @@ fn main() -> Result<(), Error> {
     // A thread share save boolean. It's passed to `flag::register` setting it to true for the first kill command received.
     let term_now = Arc::new(AtomicBool::new(false));
     for sig in TERM_SIGNALS {
-        flag::register(*sig, Arc::clone(&term_now)).map_err(|e| Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        flag::register(*sig, Arc::clone(&term_now)).map_err(|e| Error::other(e.to_string()))?;
     }
     // Archival check - Is the work file larger than about 8mb? -> move contents to archive!
     if first_start {
@@ -143,7 +143,7 @@ fn main() -> Result<(), Error> {
 
     // Testing of giving a return signal to kernel
     for sig in TERM_SIGNALS {
-        flag::register(*sig, Arc::new(AtomicBool::new(true))).map_err(|e| Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+        flag::register(*sig, Arc::new(AtomicBool::new(true))).map_err(|e| Error::other(e.to_string()))?;
     }
     Ok(())
 }
@@ -153,7 +153,7 @@ fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Proces
     let mut out: Vec<(Pid, &Process)> = Vec::new();
     for (pid, process) in processes {
         if out.len() < PROCESS_LOGGING_AMOUNT {
-            if out.len() == 0 {
+            if out.is_empty() {
                 out.push((pid.to_owned(), process));
             } else {
                 let mut index: usize = 0;
@@ -183,11 +183,11 @@ fn cpu_hogs(processes: &HashMap<Pid, Process, RandomState>) -> Vec<(Pid, &Proces
             }
             if insert {
                 out.remove(index);
-                out.insert(index, (pid.to_owned(), process))
+                out.insert(index, (pid.to_owned(), process));
             }
         }
     }
-    return out;
+    out
 }
 
 /// Returns the cpu hog first, the parent second.
@@ -206,9 +206,8 @@ fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid
                         || poss_parent_proc.unwrap().name() == ALT_PROC_NAME
                     {
                         break;
-                    } else {
-                        parent = (poss_parent.unwrap(), poss_parent_proc.unwrap());
                     }
+                    parent = (poss_parent.unwrap(), poss_parent_proc.unwrap());
                 } else {
                     break;
                 }
@@ -218,5 +217,5 @@ fn cpu_hogs_parents(cpu_hogs: Vec<(Pid, &Process)>) -> Vec<((Pid, &Process), Pid
         }
         out.push((hog, parent.0));
     }
-    return out;
+    out
 }

@@ -73,12 +73,12 @@ where
         let _ = input.unwrap().read_to_string(&mut buffer);
         let out = parse(&buffer);
         if out.is_ok() {
-            return out.unwrap();
+            out.unwrap()
         } else {
-            return JsonValue::new_object();
+            JsonValue::new_object()
         }
     } else {
-        return JsonValue::new_object();
+        JsonValue::new_object()
     }
 }
 /// This function cannot panic, it will just not write anything if it does.
@@ -116,7 +116,7 @@ where
             usr_id: usr_id
         };
         let _ = json_obj_out.insert(
-            format!("process {} at {}", pid, date).as_str(),
+            format!("process {pid} at {date}").as_str(),
             new_json_data,
         );
     }
