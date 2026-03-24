@@ -12,8 +12,8 @@ use std::{
 };
 
 use chrono::{SecondsFormat, Utc};
-use jisard::move_to_storage_file;
 use hades::{flag, term_signals::TERM_SIGNALS};
+use jisard::move_to_storage_file;
 use sysinfo::{Pid, Process, System};
 
 use crate::proc::Proc;
@@ -143,7 +143,8 @@ fn main() -> Result<(), Error> {
 
     // Testing of giving a return signal to kernel
     for sig in TERM_SIGNALS {
-        flag::register(*sig, Arc::new(AtomicBool::new(true))).map_err(|e| Error::other(e.to_string()))?;
+        flag::register(*sig, Arc::new(AtomicBool::new(true)))
+            .map_err(|e| Error::other(e.to_string()))?;
     }
     Ok(())
 }

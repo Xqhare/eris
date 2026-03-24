@@ -115,10 +115,7 @@ where
             run_time: run_time,
             usr_id: usr_id
         };
-        let _ = json_obj_out.insert(
-            format!("process {pid} at {date}").as_str(),
-            new_json_data,
-        );
+        let _ = json_obj_out.insert(format!("process {pid} at {date}").as_str(), new_json_data);
     }
     write_json(json_obj_out, filename);
 }
