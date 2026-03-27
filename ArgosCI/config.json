@@ -1,0 +1,11 @@
+{
+  "test": {},
+  "build": {},
+  "doc": {},
+  "clippy": {},
+  "format": {},
+  "update": {},
+  "license": {},
+  "requires": ["hades"]
+}
+
