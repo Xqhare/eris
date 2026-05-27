@@ -2,7 +2,6 @@
 name = "eris"
 version = "0.3.0"
 edition = "2024"
-rust-version = "1.93.0"
 authors = ["Xqhare"]
 
 
