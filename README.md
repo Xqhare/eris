@@ -2,7 +2,7 @@
 
 Eris is a simple and efficient system performance monitoring service designed to log and analyze system performance metrics under load. Named after the ancient Greek goddess of chaos and discord, Eris provides insights into your system's behavior during high-stress situations, identifying potential bottlenecks or performance issues
 
-## Features / Roadmap
+## Features
 
 - **Real-time Monitoring:** Eris continuously collects and logs key system metrics, providing real-time insights into the performance of your system.
 - **Customizable Metrics:** Tailor Eris to your specific needs by selecting and monitoring the metrics most relevant to your application or infrastructure.
